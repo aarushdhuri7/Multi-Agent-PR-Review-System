@@ -1,7 +1,15 @@
+
 .venv/
+venv/
 __pycache__/
-*.pyc
+*.py[cod]
 .env
-chroma_db/
+.env.*
+!.env.example
 node_modules/
 dist/
+*.db
+*.sqlite
+*.sqlite3
+.pytest_cache/
+.vscode/
