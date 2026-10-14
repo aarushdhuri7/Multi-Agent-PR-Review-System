@@ -1,3 +1,6 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from time import perf_counter
+
 from agents.security_agent import SecurityAgent
 from agents.bug_agent import BugAgent
 from agents.performance_agent import PerformanceAgent
@@ -14,50 +17,74 @@ class CoordinatorAgent:
         self.documentation = DocumentationAgent()
 
     def review_pull_request(self, code):
-        print("\n" + "=" * 60)
-        print("COORDINATOR AGENT STARTED")
-        print("=" * 60)
+        print("\n" + "=" * 60, flush=True)
+        print("COORDINATOR AGENT STARTED", flush=True)
+        print("=" * 60, flush=True)
 
-        agents = [
-            ("security", "Security", self.security),
-            ("bug", "Bug", self.bug),
-            ("performance", "Performance", self.performance),
-            ("testing", "Testing", self.testing),
-            ("documentation", "Documentation", self.documentation),
-        ]
+        agents = {
+            "security": self.security,
+            "bug": self.bug,
+            "performance": self.performance,
+            "testing": self.testing,
+            "documentation": self.documentation,
+        }
 
         results = {}
-        failures = []
+        overall_start = perf_counter()
 
-        for index, (key, name, agent) in enumerate(agents, start=1):
-            print(f"\n[{index}/5] Running {name} Agent...")
+        def run_agent(name, agent):
+            start = perf_counter()
 
             try:
                 result = agent.review_code(code)
 
-                if result is None or result == "":
-                    raise ValueError("Agent returned an empty result.")
+                if result is None or (isinstance(result, str) and not result.strip()):
+                    return (
+                        name,
+                        None,
+                        perf_counter() - start,
+                        "Agent returned an empty result.",
+                    )
 
-                results[key] = result
-                print(f"✓ {name} Review Completed")
+                return name, result, perf_counter() - start, None
 
             except Exception as exc:
-                print(f"✗ {name} Agent Failed: {exc}")
+                return name, None, perf_counter() - start, str(exc)
 
-                results[key] = {
-                    "status": "error",
-                    "message": str(exc),
-                }
-                failures.append(name)
+        # Start all five independent agents concurrently.
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {
+                executor.submit(run_agent, name, agent): name
+                for name, agent in agents.items()
+            }
 
-        print("\n" + "=" * 60)
+            for future in as_completed(futures):
+                name, result, elapsed, error = future.result()
 
-        if failures:
-            print("COORDINATOR FINISHED WITH ERRORS")
-            print("Failed agents: " + ", ".join(failures))
-        else:
-            print("ALL FIVE AGENTS COMPLETED SUCCESSFULLY")
+                if error:
+                    print(
+                        f"[FAILED] {name}: {error} ({elapsed:.1f}s)",
+                        flush=True,
+                    )
+                    results[name] = {
+                        "status": "error",
+                        "message": error,
+                    }
+                else:
+                    print(
+                        f"[COMPLETED] {name}: {elapsed:.1f}s",
+                        flush=True,
+                    )
+                    results[name] = result
 
-        print("=" * 60)
+        total_time = perf_counter() - overall_start
 
-        return results
+        print("-" * 60, flush=True)
+        print(
+            f"ALL FIVE AGENTS FINISHED IN {total_time:.1f}s",
+            flush=True,
+        )
+        print("=" * 60, flush=True)
+
+        # Preserve a predictable order in the returned dictionary.
+        return {name: results[name] for name in agents}

@@ -3,32 +3,33 @@ from langchain_ollama import ChatOllama
 
 class BugAgent:
     def __init__(self):
-
-        self.llm = ChatOllama(model="qwen3:8b", temperature=0)
+        self.llm = ChatOllama(
+            model="qwen3:8b",
+            temperature=0,
+            num_predict=256,
+            reasoning=False,
+        )
 
     def review_code(self, code):
-
-        prompt = f"""
-You are a senior software engineer.
-
-Review the code for:
-
-1. Logic errors
-2. Edge cases
-3. Runtime exceptions
-4. Incorrect conditions
-5. Functional bugs
-
-Return findings in this format:
-
-Severity:
-Issue:
-Recommendation:
-
-Code:
+        prompt = f"""Find up to 2 genuine bugs in this code:
 {code}
+
+Return concise results in this format:
+Severity: High/Medium/Low
+Issue: Explain the bug.
+Recommendation: Explain the fix.
+
+If there are no clear bugs, say "No clear bugs found."
+Do not include reasoning or repeat findings.
 """
 
         response = self.llm.invoke(prompt)
+        result = (response.content or "").strip()
 
-        return response.content
+        if not result:
+            raise RuntimeError(
+                "Bug Agent received an empty response from Ollama. "
+                f"Metadata: {response.response_metadata}"
+            )
+
+        return result
