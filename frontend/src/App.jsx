@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from "react";
 import {
   ShieldCheck,
@@ -396,6 +395,8 @@ function App() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("report");
+  const [reviewMode, setReviewMode] = useState("code");
+  const [prUrl, setPrUrl] = useState("");
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true);
@@ -449,6 +450,47 @@ function App() {
       setError(
         err.message ||
           "Unable to reach the backend. Check that FastAPI is running."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitGitHubReview = async (event) => {
+    event.preventDefault();
+
+    const trimmedUrl = prUrl.trim();
+    if (!trimmedUrl) {
+      setError("Enter a GitHub pull request URL before starting a review.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setReviewResult(null);
+    setActiveTab("report");
+
+    try {
+      const response = await fetch(`${API_URL}/pull-request/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: trimmedUrl }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || `GitHub PR review failed (${response.status}).`
+        );
+      }
+
+      setReviewResult(data);
+      await loadHistory();
+    } catch (err) {
+      setError(
+        err.message ||
+          "Unable to review this GitHub PR. Check that FastAPI is running and the PR is public."
       );
     } finally {
       setLoading(false);
@@ -546,42 +588,102 @@ function App() {
               </div>
             </div>
 
-            <form onSubmit={submitReview}>
-              <label className="field-label" htmlFor="source-code">
-                <FileCode2 size={15} />
-                Source code
-              </label>
+            <div className="review-mode-switch" role="group" aria-label="Review source">
+              <button
+                className={`mode-button ${reviewMode === "code" ? "active" : ""}`}
+                type="button"
+                onClick={() => setReviewMode("code")}
+                disabled={loading}
+              >
+                <FileCode2 size={16} />
+                Paste code
+              </button>
+              <button
+                className={`mode-button ${reviewMode === "github" ? "active" : ""}`}
+                type="button"
+                onClick={() => setReviewMode("github")}
+                disabled={loading}
+              >
+                <GitPullRequest size={16} />
+                GitHub PR
+              </button>
+            </div>
 
-              <textarea
-                id="source-code"
-                className="code-editor"
-                value={code}
-                onChange={(event) => setCode(event.target.value)}
-                placeholder="Paste your source code here..."
-                spellCheck={false}
-                autoCapitalize="off"
-                autoCorrect="off"
-              />
+            <form onSubmit={reviewMode === "code" ? submitReview : submitGitHubReview}>
+              {reviewMode === "code" ? (
+                <>
+                  <label className="field-label" htmlFor="source-code">
+                    <FileCode2 size={15} />
+                    Source code
+                  </label>
 
-              <div className="editor-footer">
-                <span>{code.split("\n").length} lines</span>
-                <span>{code.length.toLocaleString()} characters</span>
-              </div>
+                  <textarea
+                    id="source-code"
+                    className="code-editor"
+                    value={code}
+                    onChange={(event) => setCode(event.target.value)}
+                    placeholder="Paste your source code here..."
+                    spellCheck={false}
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                  />
+
+                  <div className="editor-footer">
+                    <span>{code.split("\n").length} lines</span>
+                    <span>{code.length.toLocaleString()} characters</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <label className="field-label" htmlFor="github-pr-url">
+                    <GitPullRequest size={15} />
+                    GitHub pull request URL
+                  </label>
+
+                  <input
+                    id="github-pr-url"
+                    className="pr-url-input"
+                    type="url"
+                    value={prUrl}
+                    onChange={(event) => setPrUrl(event.target.value)}
+                    placeholder="https://github.com/owner/repository/pull/123"
+                    autoComplete="url"
+                    spellCheck={false}
+                    required
+                  />
+
+                  <div className="editor-footer">
+                    <span>Public GitHub pull requests</span>
+                    <span>Diff limit: 30,000 characters</span>
+                  </div>
+
+                  <p className="pr-input-help">
+                    ReviewPilot fetches the PR diff and runs the five local
+                    review agents. Private repositories are not supported yet.
+                  </p>
+                </>
+              )}
 
               <button
                 className="primary-button"
                 type="submit"
-                disabled={loading || !code.trim()}
+                disabled={loading || (reviewMode === "code" ? !code.trim() : !prUrl.trim())}
               >
                 {loading ? (
                   <>
                     <LoaderCircle className="spin" size={19} />
-                    Analyzing with five agents...
+                    {reviewMode === "github"
+                      ? "Fetching PR and reviewing..."
+                      : "Analyzing with five agents..."}
                   </>
                 ) : (
                   <>
-                    <ShieldCheck size={19} />
-                    Analyze code
+                    {reviewMode === "github" ? (
+                      <GitPullRequest size={19} />
+                    ) : (
+                      <ShieldCheck size={19} />
+                    )}
+                    {reviewMode === "github" ? "Review GitHub PR" : "Analyze code"}
                   </>
                 )}
               </button>
@@ -590,10 +692,14 @@ function App() {
                 <div className="loading-panel">
                   <LoaderCircle className="spin" size={17} />
                   <div>
-                    <strong>Review in progress</strong>
+                    <strong>
+                      {reviewMode === "github"
+                        ? "GitHub pull request review in progress"
+                        : "Review in progress"}
+                    </strong>
                     <p>
-                      Specialist agents are analyzing your code. Local
-                      model inference can take some time.
+                      Specialist agents are analyzing the input. Local model
+                      inference can take some time.
                     </p>
                   </div>
                 </div>
@@ -685,6 +791,18 @@ function App() {
                         agentCount ? `${agentCount} usable agent outputs` : "Specialist findings"
                       }`}
                 </p>
+                {reviewResult.html_url && (
+                  <a
+                    className="pr-result-link"
+                    href={reviewResult.html_url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <GitPullRequest size={15} />
+                    {reviewResult.title || `${reviewResult.owner}/${reviewResult.repository} #${reviewResult.pull_request_number}`}
+                    <span>Open PR ↗</span>
+                  </a>
+                )}
               </div>
               <span className="completed-pill">
                 <span className="live-dot" />

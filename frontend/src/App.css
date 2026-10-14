@@ -1,114 +1,3 @@
-
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
-
-:root {
-  font-family: "DM Sans", Inter, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
-  color: #e8eaf2;
-  background: #090b11;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-optical-sizing: auto;
-  font-weight: 400;
-
-  --bg: #090b11;
-  --panel: #11141e;
-  --panel-raised: #151925;
-  --border: #272c3c;
-  --muted: #8d96ad;
-  --text: #e8eaf2;
-  --purple: #9b83ff;
-  --purple-soft: rgba(155, 131, 255, 0.12);
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  background:
-    radial-gradient(ellipse at 50% -20%, rgba(113, 85, 215, 0.12), transparent 55%),
-    var(--bg);
-}
-
-button,
-textarea {
-  font: inherit;
-}
-
-button {
-  -webkit-tap-highlight-color: transparent;
-}
-
-button:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid var(--purple);
-  outline-offset: 3px;
-}
-
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.app-shell {
-  width: 100%;
-  min-height: 100vh;
-}
-
-.topbar {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 25px 28px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  border-bottom: 1px solid var(--border);
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.brand-mark,
-.panel-heading-icon {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  color: #b6a4ff;
-  background: rgba(155, 131, 255, 0.13);
-  border: 1px solid rgba(155, 131, 255, 0.15);
-  border-radius: 12px;
-}
-
-.brand-mark {
-  width: 46px;
-  height: 46px;
-}
-
-.brand h1 {
-  margin: 0;
-  font-size: 21px;
-  letter-spacing: -0.8px;
-  font-weight: 700;
-}
-
-.brand p,
-.panel-heading p {
-  margin: 4px 0 0;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.local-pill,
 .completed-pill {
   display: inline-flex;
   align-items: center;
@@ -1125,5 +1014,122 @@ button:disabled {
     flex-direction: column;
     align-items: flex-start;
     padding: 20px 16px;
+  }
+}
+
+/* GitHub PR review mode */
+.review-mode-switch {
+  display: flex;
+  gap: 5px;
+  padding: 5px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #0e1119;
+}
+
+.mode-button {
+  display: inline-flex;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #8993aa;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.mode-button:hover {
+  color: #c9bcff;
+  background: rgba(155, 131, 255, 0.06);
+}
+
+.mode-button.active {
+  color: #c9bcff;
+  background: #211c35;
+  border-color: #3b315e;
+}
+
+.mode-button:focus-visible {
+  outline: 2px solid #8f79f5;
+  outline-offset: 2px;
+}
+
+.pr-url-input {
+  display: block;
+  width: 100%;
+  min-height: 54px;
+  padding: 15px 16px;
+  border: 1px solid #30354a;
+  border-radius: 12px;
+  outline: none;
+  color: #e0def4;
+  background: #0b0d14;
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-size: 13px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.pr-url-input::placeholder {
+  color: #59637a;
+}
+
+.pr-url-input:focus {
+  border-color: #8f79f5;
+  box-shadow: 0 0 0 3px rgba(143, 121, 245, 0.1);
+}
+
+.pr-input-help {
+  margin: 11px 2px 18px;
+  color: #7f8aa3;
+  font-size: 11px;
+  line-height: 1.75;
+}
+
+.pr-result-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 11px;
+  border: 1px solid #3b315e;
+  border-radius: 9px;
+  color: #c9bcff;
+  background: #211c35;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.pr-result-link:hover {
+  border-color: #6858a7;
+  background: #2a2344;
+}
+
+@media (max-width: 600px) {
+  .review-mode-switch {
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .mode-button {
+    gap: 6px;
+    min-height: 40px;
+    padding: 9px 6px;
+    font-size: 11px;
+  }
+
+  .pr-url-input {
+    min-height: 48px;
+    padding: 13px;
+    font-size: 12px;
   }
 }
